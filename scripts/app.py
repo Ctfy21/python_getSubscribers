@@ -1,10 +1,16 @@
-from flask import Flask, request, json, Response, jsonify
+from flask import Flask, request, json, Response
 from flask_sqlalchemy import SQLAlchemy
-from collections import OrderedDict
+import time
+from request_subscribers import receive_subscribers_from_groups
+from queue import Queue
+import threading
+import multiprocessing
+import asyncio
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///main.db'
 db = SQLAlchemy(app)
+queue = Queue(maxsize=1)
 
 
 class Group(db.Model):
@@ -63,11 +69,36 @@ def add_account():
         return Response(status=501)
     return Response(status=200)
 
-        
-def run_server():
+@app.route("/post_telegram_code", methods=["POST"])
+def post_code():
+    try:
+        data = json.loads(request.data)
+        queue.put(data["code"])
+
+        return Response(status=200)
+    except:
+        print("Ошибка получения telegram code!")
+        return Response(status=501)
+
+
+def start_web_server():
     with app.app_context():
         db.create_all()
+
     app.run(debug = True)
+
+def main():
+    loop = asyncio.get_event_loop()
+    thr = threading.Thread(target=receive_subscribers_from_groups, args=(queue, loop)).start()
+    start_web_server()
+    thr.join()
+
+if __name__ == '__main__':
+    main() 
+
+
+
+
 
 
 
