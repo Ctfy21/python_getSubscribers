@@ -1,1 +1,4 @@
 venv
+*.session
+instance
+__pycache__
