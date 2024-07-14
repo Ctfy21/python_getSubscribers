@@ -10,6 +10,7 @@ class Group(Base):
 
     id = Column(Integer, primary_key=True)
     url = Column(String(200), unique=True, nullable=False)
+    subscribers = Column(Integer, nullable=True)
 
     def __init__(self, url):
         self.url = url

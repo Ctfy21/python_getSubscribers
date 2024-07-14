@@ -1,6 +1,8 @@
+import multiprocessing
 from flask import Flask, request, json, Response
 from flask_sqlalchemy import SQLAlchemy
-from multiprocessing import Queue
+
+from request_subscribers import receive_subscribers_from_groups
 
 
 app = Flask(__name__)
@@ -9,7 +11,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///main.db'
 from db import metadata, Group, Account
 db = SQLAlchemy(metadata=metadata)
 
-code_queue = None
+code_queue = multiprocessing.Queue(maxsize=1)
 
 @app.route('/')
 def group_page():
@@ -68,17 +70,17 @@ def post_code():
         return Response(status=501)
 
 
-def start_web_server(queue):
-    global code_queue
-    code_queue = queue
-
+def start_web_server():
     db.init_app(app)
     with app.app_context():
         db.create_all()
 
+    multiprocessing.Process(target=receive_subscribers_from_groups, args=(code_queue,)).start()
+
     app.run(use_reloader=False)
 
-
+if __name__ == "__main__":
+    start_web_server()
 
 
 
