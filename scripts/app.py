@@ -1,33 +1,20 @@
 from flask import Flask, request, json, Response
 from flask_sqlalchemy import SQLAlchemy
-import time
-from request_subscribers import receive_subscribers_from_groups
-from queue import Queue
-import threading
-import multiprocessing
-import asyncio
+from multiprocessing import Queue
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///main.db'
-db = SQLAlchemy(app)
-queue = Queue(maxsize=1)
 
+from db import metadata, Group, Account
+db = SQLAlchemy(metadata=metadata)
 
-class Group(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.String(200), unique=True, nullable=False)
-
-class Account(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    phone_number = db.Column(db.String(80), unique=True, nullable=False)
-    api_id = db.Column(db.String(80), unique=False, nullable=False)
-    api_hash = db.Column(db.String(200), unique=False, nullable=False)
-    password = db.Column(db.String(200), unique=False, nullable=True)
+code_queue = None
 
 @app.route('/')
 def group_page():
     try:
-        groups_json = [{'id': g.id, 'url': g.url} for g in Group.query.all()]
+        groups_json = [{'id': g.id, 'url': g.url} for g in db.session.query(Group).all()]
         return json.dumps(groups_json)
     except:
         print("error while sending groups through API")
@@ -50,7 +37,7 @@ def add_group():
 @app.route('/accounts')
 def account_page():
     try:
-        accounts_json = [{'id': a.id, 'phone_number': a.phone_number, 'api_id': a.api_id, 'api_hash': a.api_hash, 'password': a.password} for a in Account.query.all()]
+        accounts_json = [{'id': a.id, 'phone_number': a.phone_number, 'api_id': a.api_id, 'api_hash': a.api_hash, 'password': a.password} for a in db.session.query(Account).all()]
         return json.dumps(accounts_json)
     except:
         print("error while sending accounts through API")
@@ -73,7 +60,7 @@ def add_account():
 def post_code():
     try:
         data = json.loads(request.data)
-        queue.put(data["code"])
+        code_queue.put(data["code"])
 
         return Response(status=200)
     except:
@@ -81,20 +68,15 @@ def post_code():
         return Response(status=501)
 
 
-def start_web_server():
+def start_web_server(queue):
+    global code_queue
+    code_queue = queue
+
+    db.init_app(app)
     with app.app_context():
         db.create_all()
 
-    app.run(debug = True)
-
-def main():
-    loop = asyncio.get_event_loop()
-    thr = threading.Thread(target=receive_subscribers_from_groups, args=(queue, loop)).start()
-    start_web_server()
-    thr.join()
-
-if __name__ == '__main__':
-    main() 
+    app.run(use_reloader=False)
 
 
 
