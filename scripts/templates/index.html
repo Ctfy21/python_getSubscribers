@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div id="app">
+
+    <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
+        <ul class="nav nav-pills">
+            <li class="nav-item active">
+            <a class="nav-link active" href="/">Группы</a>
+            </li>
+            <li class="nav-item">
+            <a class="nav-link" href="/account">Аккаунт</a>
+            </li>
+        </ul>
+        </header>
+
+        <body>
+            <div class="row">
+              <div class="col m-4">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item d-flex align-items-center justify-content-center" v-for="group in groupsArray" v-bind:key="group">
+                    <span class="h6">
+                        { group["url"] }
+                    </span>
+                    <button @click="deleteGroup(group)" class="ms-3 btn btn-danger" type="submit">X</button>
+                  </li>
+                </ul>
+              </div>
+              <div class="col m-4">
+                <input v-model="url" type="text" class="form-control" placeholder="URL" aria-label="url">
+                <button @click="addGroup()" class="btn btn-outline-secondary mt-4">Добавить</button>
+              </div>
+            </div>
+          </body>
+
+    </div>
+{% endblock %}
