@@ -89,22 +89,12 @@ const App = {
         },    
 
         async editAccount() {
-            let new_account = {
-                api_id: this.api_id,
-                api_hash: this.api_hash,
-                phone_number: this.phone_number,
-                password: this.password,
-                result_send_chat: this.result_send_chat
-            }
-
-
-            let json = JSON.stringify(new_account)
             await fetch('http://localhost:5000/edit_account', {
                 method: "POST",
                 headers: {
                     'Content-Type': 'application/json;charset=utf-8'
                 },
-                body: json
+                body: []
             })
 
             window.location.reload(true)

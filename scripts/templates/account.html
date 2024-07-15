@@ -27,13 +27,13 @@
               </div>
               <div class="col m-4">
                 <div class="d-grid gap-3">
-                    <input v-model="api_id" type="text" class="form-control" placeholder="api_id" aria-label="api_id">
-                    <input v-model="api_hash" type="text" class="form-control" placeholder="api_hash" aria-label="api_hash">
-                    <input v-model="phone_number" type="text" class="form-control" placeholder="Номер телефона" aria-label="Номер телефона">
-                    <input v-model="password" type="text" class="form-control" placeholder="Пароль(если есть)" aria-label="Пароль(если есть)">
-                    <input v-model="result_send_chat" type="text" class="form-control" placeholder="Чат для отправки сообщений" aria-label="Чат для отправки сообщений">
+                    <input v-show="!accountsArray.length" v-model="api_id" type="text" class="form-control" placeholder="api_id" aria-label="api_id">
+                    <input v-show="!accountsArray.length" v-model="api_hash" type="text" class="form-control" placeholder="api_hash" aria-label="api_hash">
+                    <input v-show="!accountsArray.length" v-model="phone_number" type="text" class="form-control" placeholder="Номер телефона" aria-label="Номер телефона">
+                    <input v-show="!accountsArray.length" v-model="password" type="text" class="form-control" placeholder="Пароль(если есть)" aria-label="Пароль(если есть)">
+                    <input v-show="!accountsArray.length" v-model="result_send_chat" type="text" class="form-control" placeholder="Чат для отправки сообщений" aria-label="Чат для отправки сообщений">
                     <button v-if="!accountsArray.length" @click="addAccount()" class="btn btn-outline-secondary mt-4">Отправить телеграм код</button>
-                    <button v-else @click="editAccount()" class="btn btn-outline-secondary mt-4">Изменить</button>
+                    <button v-else @click="editAccount()" class="btn btn-outline-secondary mt-4">Удалить</button>
                     <input v-show="code_flag" v-model="telegram_code" type="text" class="form-control" placeholder="Код от телеграмма" aria-label="Код от телеграмма">
                     <button v-show="code_flag" @click="sendTelegramCode()" class="btn btn-outline-secondary mt-4">Добавить</button>
                 </div>

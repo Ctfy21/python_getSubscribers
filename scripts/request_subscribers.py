@@ -34,7 +34,6 @@ def receive_subscribers_from_groups(queue):
             res_sub = None
             with client:
                 res_sub = client.loop.run_until_complete(get_subscribers(client, group.url))
-
             if(res_sub != group.subscribers):
                 set_subs_db_flag = set_group_subscribers_repository(engine, group.url, res_sub)
                 if(group.subscribers != None and set_subs_db_flag):

@@ -93,15 +93,9 @@ def add_account():
 @app.route("/edit_account", methods=["POST"])
 def edit_account():
     try:
-        data = json.loads(request.data)
-
         account = db.session.query(Account).first()
-        new_account = Account(phone_number=data["phone_number"], api_id=data["api_id"], api_hash=data["api_hash"], password=data["password"], result_send_chat=data["result_send_chat"])
 
         db.session.delete(account)
-        db.session.commit()
-
-        db.session.add(new_account)
         db.session.commit()
 
         code_queue.put("400")
