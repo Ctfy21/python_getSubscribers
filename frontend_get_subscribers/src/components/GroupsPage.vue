@@ -11,6 +11,11 @@ export default {
             this.groupsArray.push(this.url)
             this.url = ""
         }
+    },
+    created() {
+      fetch('http://localhost:5000/get_groups')
+            .then(response => response.json())
+            .then(data => (this.groupsArray = data))
     }
 }
 
