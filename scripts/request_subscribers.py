@@ -49,7 +49,7 @@ def receive_subscribers_from_groups(queue):
                     else:
                         print(f"Что-то не так при отправке сообщения в result_chat")
 
-        time.sleep(60)
+        time.sleep(10)
 
 
 
