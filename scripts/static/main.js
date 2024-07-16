@@ -96,6 +96,8 @@ const App = {
                 body: json
             })
 
+            window.location.reload(true)
+
         },   
 
 

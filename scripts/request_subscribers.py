@@ -9,9 +9,11 @@ from telethon import TelegramClient
 from db_repository import get_groups_repository, set_group_subscribers_repository
 from telegram_repository import get_subscribers, send_subscribers_to_result_send_chat
 
-def main_receive_cycle(queue, accounts):
+def main_receive_cycle(queue, accounts, restart_flag):
 
     print("come to main_receive_cycle")
+
+    restart_flag.set()
 
     res_array = []
     for account in accounts:
@@ -31,23 +33,33 @@ def main_receive_cycle(queue, accounts):
     
         client.disconnect()
     
+    processes = []
+
     for res_val in res_array:
-        multiprocessing.Process(target=receive_subscribers_from_groups, args=(res_val[0],), daemon=True).start()
-        print(f"Client: {res_val[0].phone_number} - start")
+        receive_subs_process = multiprocessing.Process(target=receive_subscribers_from_groups, args=(res_val[0], restart_flag), daemon=True, name=res_val[0].phone_number)
+        processes.append(receive_subs_process)
+        receive_subs_process.start()
+        print(f"Client: {receive_subs_process.name} - start")
         time.sleep(2)
+
     
+    [process.join() for process in processes]
+
+    print("leave main_receive_cycle")
+    
+    restart_flag.set()
     
 
 
 
-def receive_subscribers_from_groups(account):
+def receive_subscribers_from_groups(account, restart_flag):
 
     client = TelegramClient(str(account.api_id), account.api_id, account.api_hash, system_version="4.16.30-vxCUSTOM")
     engine = create_engine("sqlite:///instance/main.db")
 
     print("come to receive_subscribers_from_groups")
 
-    while(True):
+    while(restart_flag.is_set()):
         groups = [group for group in get_groups_repository(engine)]
         for group in groups:
             res_sub = None

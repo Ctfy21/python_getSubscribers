@@ -1,6 +1,4 @@
 import multiprocessing
-import os
-import sys
 from flask import Flask, request, json, Response, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -19,6 +17,8 @@ from db_repository import metadata, Group, Account
 db = SQLAlchemy(metadata=metadata)
 
 code_queue = multiprocessing.Queue(maxsize=1)
+
+restart_flag = multiprocessing.Event()
 
 @app.route('/')
 def group_page():
@@ -93,11 +93,19 @@ def add_account():
         print("Ошибка добавления в БД account!")
         return Response(status=501)
     
-    def restart_server():
-        os.execv(sys.executable, ['python'] + sys.argv)
+    def restart_cycle():
+        engine = create_engine("sqlite:///instance/main.db")
+        accounts = [account for account in get_accounts_repository(engine)]
+
+        if(len(accounts) > 1):
+            restart_flag.clear()
+            restart_flag.wait()
+
+        multiprocessing.Process(target=main_receive_cycle, args=(code_queue, accounts, restart_flag)).start()
+        print("restart cycle")
 
     response = Response(status=200)
-    response.call_on_close(restart_server())
+    response.call_on_close(restart_cycle())
     return response
 
 @app.route("/delete_account", methods=["DELETE"])
@@ -112,11 +120,18 @@ def delete_account():
         print("Ошибка удаления в БД account!")
         return Response(status=501)
     
-    def restart_server():
-        os.execv(sys.executable, ['python'] + sys.argv)
+    def restart_cycle():
+        restart_flag.clear()
+        restart_flag.wait()
+
+        engine = create_engine("sqlite:///instance/main.db")
+        accounts = [account for account in get_accounts_repository(engine)]
+        multiprocessing.Process(target=main_receive_cycle, args=(code_queue, accounts, restart_flag)).start()
+        print("restart cycle")
+
         
     response = Response(status=200)
-    response.call_on_close(restart_server())
+    response.call_on_close(restart_cycle())
     return response
 
 @app.route("/post_telegram_code", methods=["POST"])
@@ -137,16 +152,13 @@ def start_server():
     with app.app_context():
         db.create_all()
 
-    start_receive_service()
-
-    app.run(use_reloader=False)
-
-def start_receive_service():
-
     engine = create_engine("sqlite:///instance/main.db")
     accounts = [account for account in get_accounts_repository(engine)]
 
-    multiprocessing.Process(target=main_receive_cycle, args=(code_queue, accounts)).start()
+    multiprocessing.Process(target=main_receive_cycle, args=(code_queue, accounts, restart_flag)).start()
+
+    app.run(use_reloader=False)
+
 
 if __name__ == "__main__":
     start_server()
