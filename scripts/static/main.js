@@ -66,8 +66,6 @@ const App = {
                 body: json
             })
 
-            this.code_flag = true
-
         },
         
         async sendTelegramCode() {
@@ -98,7 +96,6 @@ const App = {
                 body: json
             })
 
-            window.location.reload(true)
         },   
 
 
