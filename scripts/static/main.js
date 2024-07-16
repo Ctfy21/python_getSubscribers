@@ -12,7 +12,6 @@ const App = {
             phone_number: "",
             password: "",
             result_send_chat: "",
-            code_flag: false,
             telegram_code: ""
 
         }
@@ -88,13 +87,15 @@ const App = {
             window.location.reload(true)
         },    
 
-        async editAccount() {
-            await fetch('http://localhost:5000/edit_account', {
-                method: "POST",
+        async deleteAccount(account) {
+            let json = JSON.stringify(account)
+
+            await fetch('http://localhost:5000/delete_account', {
+                method: "DELETE",
                 headers: {
                     'Content-Type': 'application/json;charset=utf-8'
                 },
-                body: []
+                body: json
             })
 
             window.location.reload(true)

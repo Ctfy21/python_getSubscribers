@@ -1,4 +1,5 @@
-from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy import MetaData, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -33,3 +34,24 @@ class Account(Base):
         self.password = password
         self.result_send_chat = result_send_chat
 
+def get_groups_repository(engine):
+    Session = sessionmaker(autoflush=False, bind=engine)
+    with Session(autoflush=False, bind=engine) as db:
+        return db.query(Group).all()
+
+def get_accounts_repository(engine):
+    Session = sessionmaker(autoflush=False, bind=engine)
+    with Session(autoflush=False, bind=engine) as db:
+        return db.query(Account).all()
+
+def set_group_subscribers_repository(engine, group_url, subs):
+    Session = sessionmaker(autoflush=False, bind=engine)
+    try:
+        with Session(autoflush=False, bind=engine) as db:
+            group = db.query(Group).filter_by(url=group_url).first()
+            group.subscribers = subs
+            db.add(group)
+            db.commit()
+            return True
+    except:
+        return False

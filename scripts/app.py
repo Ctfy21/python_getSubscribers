@@ -1,9 +1,13 @@
 import multiprocessing
+import os
+import sys
 from flask import Flask, request, json, Response, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from sqlalchemy import create_engine
 
-from request_subscribers import receive_subscribers_from_groups
+from db_repository import get_accounts_repository
+from request_subscribers import main_receive_cycle
 
 
 app = Flask(__name__)
@@ -11,7 +15,7 @@ CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///main.db'
 
-from db import metadata, Group, Account
+from db_repository import metadata, Group, Account
 db = SQLAlchemy(metadata=metadata)
 
 code_queue = multiprocessing.Queue(maxsize=1)
@@ -88,22 +92,32 @@ def add_account():
         db.session.rollback()
         print("Ошибка добавления в БД account!")
         return Response(status=501)
-    return Response(status=200)
+    
+    def restart_server():
+        os.execv(sys.executable, ['python'] + sys.argv)
 
-@app.route("/edit_account", methods=["POST"])
-def edit_account():
+    response = Response(status=200)
+    response.call_on_close(restart_server())
+    return response
+
+@app.route("/delete_account", methods=["DELETE"])
+def delete_account():
     try:
-        account = db.session.query(Account).first()
-
+        data = json.loads(request.data)
+        account = db.session.query(Account).filter_by(phone_number=data["phone_number"]).first()
         db.session.delete(account)
         db.session.commit()
-
-        code_queue.put("400")
     except:
         db.session.rollback()
-        print("Ошибка добавления в БД account!")
+        print("Ошибка удаления в БД account!")
         return Response(status=501)
-    return Response(status=200)
+    
+    def restart_server():
+        os.execv(sys.executable, ['python'] + sys.argv)
+        
+    response = Response(status=200)
+    response.call_on_close(restart_server())
+    return response
 
 @app.route("/post_telegram_code", methods=["POST"])
 def post_code():
@@ -117,17 +131,25 @@ def post_code():
         return Response(status=501)
 
 
-def start_web_server():
+def start_server():
+
     db.init_app(app)
     with app.app_context():
         db.create_all()
 
-    multiprocessing.Process(target=receive_subscribers_from_groups, args=(code_queue,)).start()
+    start_receive_service()
 
     app.run(use_reloader=False)
 
+def start_receive_service():
+
+    engine = create_engine("sqlite:///instance/main.db")
+    accounts = [account for account in get_accounts_repository(engine)]
+
+    multiprocessing.Process(target=main_receive_cycle, args=(code_queue, accounts)).start()
+
 if __name__ == "__main__":
-    start_web_server()
+    start_server()
 
 
 
