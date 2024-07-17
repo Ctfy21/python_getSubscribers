@@ -36,7 +36,7 @@ def main_receive_cycle(queue, accounts, restart_flag):
     processes = []
 
     for res_val in res_array:
-        receive_subs_process = multiprocessing.Process(target=receive_subscribers_from_groups, args=(res_val[0], restart_flag), daemon=True, name=res_val[0].phone_number)
+        receive_subs_process = multiprocessing.Process(target=receive_subscribers_from_groups, args=(res_val[0], restart_flag, res_array.index(res_val)), daemon=True, name=res_val[0].phone_number)
         processes.append(receive_subs_process)
         receive_subs_process.start()
         print(f"Client: {receive_subs_process.name} - start")
@@ -52,28 +52,28 @@ def main_receive_cycle(queue, accounts, restart_flag):
 
 
 
-def receive_subscribers_from_groups(account, restart_flag):
+def receive_subscribers_from_groups(account, restart_flag, index):
 
     client = TelegramClient(str(account.api_id), account.api_id, account.api_hash, system_version="4.16.30-vxCUSTOM")
     engine = create_engine("sqlite:///instance/main.db")
 
-    print("come to receive_subscribers_from_groups")
+    print(f"come to receive_subscribers_from_groups, index = {index}")
 
     while(restart_flag.is_set()):
-        groups = [group for group in get_groups_repository(engine)]
+        groups = get_groups_repository(engine)
         for group in groups:
             res_sub = None
             with client:
-                res_sub = client.loop.run_until_complete(get_subscribers(client, group.url))
-            if(res_sub != group.subscribers):
-                set_subs_db_flag = set_group_subscribers_repository(engine, group.url, res_sub)
-                if(group.subscribers != None and set_subs_db_flag):
+                res_sub = client.loop.run_until_complete(get_subscribers(client, group[0]))
+            if(res_sub != group[1][index]):
+                set_subs_db_flag = set_group_subscribers_repository(engine, group[0], res_sub, index)
+                if(group[1][index] != None and set_subs_db_flag):
 
-                    print(f"Update subs in {group.url}: {res_sub}")
+                    print(f"Update subs in {group[0]}: {res_sub}")
 
                     res_alg = False
                     with client:
-                        res_alg = client.loop.run_until_complete(send_subscribers_to_result_send_chat(client, group.url, account.result_send_chat, group.subscribers, res_sub))
+                        res_alg = client.loop.run_until_complete(send_subscribers_to_result_send_chat(client, group[0], account.result_send_chat, group[1][index], res_sub))
 
                     if(res_alg):
                         print(f"Отправлено сообщение в result_chat")

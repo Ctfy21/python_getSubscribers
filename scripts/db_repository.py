@@ -1,3 +1,4 @@
+import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import MetaData, Column, Integer, String
@@ -11,7 +12,7 @@ class Group(Base):
 
     id = Column(Integer, primary_key=True)
     url = Column(String(200), unique=True, nullable=False)
-    subscribers = Column(Integer, nullable=True)
+    subscribers = Column(String(2000), nullable=True)
 
     def __init__(self, url, subscribers):
         self.url = url
@@ -37,19 +38,27 @@ class Account(Base):
 def get_groups_repository(engine):
     Session = sessionmaker(autoflush=False, bind=engine)
     with Session(autoflush=False, bind=engine) as db:
-        return db.query(Group).all()
+        raw_groups = db.query(Group).all()
+        groups = []
+        for raw_group in raw_groups:
+            subs = json.loads(raw_group.subscribers)
+            groups.append([raw_group.url, subs])
+        return groups
 
 def get_accounts_repository(engine):
     Session = sessionmaker(autoflush=False, bind=engine)
     with Session(autoflush=False, bind=engine) as db:
         return db.query(Account).all()
 
-def set_group_subscribers_repository(engine, group_url, subs):
+def set_group_subscribers_repository(engine, group_url, subs, index):
     Session = sessionmaker(autoflush=False, bind=engine)
     try:
         with Session(autoflush=False, bind=engine) as db:
             group = db.query(Group).filter_by(url=group_url).first()
-            group.subscribers = subs
+            array_subs = json.loads(group.subscribers)
+            array_subs[index] = subs
+            res_json = json.dumps(array_subs)
+            group.subscribers = res_json                
             db.add(group)
             db.commit()
             return True

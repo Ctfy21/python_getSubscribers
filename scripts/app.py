@@ -41,12 +41,12 @@ def get_groups():
 def add_group():
     try:
         data = json.loads(request.data)
-        new_group = Group(url=data["url"], subscribers=None)
+        new_group = Group(url=data["url"], subscribers=json.dumps([None] * 50))
         db.session.add(new_group)
         db.session.commit()
-    except:
+    except Exception as e:
         db.session.rollback()
-        print("Ошибка добавления в БД group!")
+        print(f"Ошибка добавления в БД group!, {e}")
         return Response(status=501)
     return Response(status=200)
 
